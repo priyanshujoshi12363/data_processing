@@ -87,6 +87,32 @@ body {
   50% { background-position: 100% 50%; }
 }
 
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+
+.animate-msg-in { animation: msgIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.progress-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+.progress-bar {
+  position: absolute;
+  inset-block: 0;
+  width: 45%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f97316, #16a34a);
+  animation: indeterminate 1.4s ease-in-out infinite;
+}
+
 .animate-fade-up { animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-fade-in { animation: fadeIn 0.8s ease both; }
 .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }

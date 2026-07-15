@@ -2,7 +2,11 @@ import { connectDB } from "@/lib/DB";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import User from "@/models/User";
 
-const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:8000";
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+const PYTHON_API_URL =
+  process.env.PYTHON_API_URL || "https://data-processing-n3kq.onrender.com";
 const FORWARD_HEADERS = [
   "content-disposition",
   "content-type",

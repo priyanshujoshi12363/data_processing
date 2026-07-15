@@ -1,247 +1,67 @@
-# 🚀 Prompt2Data
+# Prompt2Data — Frontend
 
-> AI-powered data generation platform for developers
-> Generate structured datasets, stream them, and integrate directly into your ML pipelines.
+Next.js 16 (App Router) frontend for Prompt2Data — a chat-style app where you
+upload a dataset, describe how to clean it, and download the cleaned file. See
+the [root README](../README.md) for the full system overview.
 
----
+## Pages
 
-## 🧠 Overview
+| Route         | What it is                                                        |
+|---------------|-------------------------------------------------------------------|
+| `/`           | Marketing landing page — hero, "how it works", features, privacy  |
+| `/login`      | Google / GitHub sign-in (Firebase)                                |
+| `/dashboard`  | Chat-style cleaning workspace — drop a file, prompt, get it back  |
 
-Prompt2Data is a SaaS platform that allows users to:
+## How the dashboard works
 
-* Generate datasets using natural language prompts
-* Define custom schemas or let AI auto-generate structure
-* Preview data before spending credits
-* Convert datasets into embeddings for AI/RAG use cases
-* Access datasets via API or Python SDK
+1. `useAuthUser` loads the signed-in user + credit balance (Firebase → `/api/auth/getUser`).
+2. You attach a file (drag & drop or picker) and type a cleaning prompt.
+3. The browser `POST`s the file + prompt to **`/api/clean`** with the Firebase JWT.
+4. `/api/clean` verifies the token, resolves the Mongo user, and forwards the
+   file to the Python backend (`PYTHON_API_URL`). The cleaned file streams back.
+5. The UI shows a stats card (rows in/out, duplicates, empty rows), a preview
+   table, and a download button. Credits update from the response headers.
 
----
+## Design system
 
-## ✨ Features
+- **Colors:** white / gray / black base, **orange** (`--color-brand`) primary,
+  **green** (`--color-grass`) for success + credits.
+- **Animations:** scroll-reveal (`Reveal`), fade/slide/scale entrances, floating
+  blobs, animated gradient text, typing-dot indicator — all in `globals.css`.
+- **Tailwind v4** with custom theme tokens (`bg-brand`, `text-grass`, etc.).
 
-### 🔐 Authentication
-
-* Google Login (Firebase)
-* GitHub Login (Firebase)
-* Secure JWT verification using Firebase Admin
-
----
-
-### 💰 Credit System
-
-* 100 free credits on signup
-* Pay-per-usage model
-* Credit-based dataset generation
-
----
-
-### 📊 Dataset Engine
-
-* Prompt-based dataset generation
-* Custom schema support (JSON)
-* Auto schema generation
-* Preview before generation
-
----
-
-### ⚙️ Job System
-
-* Async dataset generation
-* Status tracking:
-
-  * `pending`
-  * `processing`
-  * `completed`
-  * `failed`
-
----
-
-### 🧠 AI + Vector DB
-
-* Convert datasets into embeddings
-* Ready for RAG pipelines
-* Future support for:
-
-  * Pinecone
-  * Weaviate
-  * FAISS
-
----
-
-### 🔑 API & SDK
-
-* Secure API access via Firebase auth
-* Python SDK (planned)
-* Streaming dataset support
-
----
-
-## 🏗️ Tech Stack
-
-### Frontend
-
-* Next.js (App Router)
-* TypeScript
-* Tailwind CSS
-
-### Backend
-
-* Next.js API Routes
-* Firebase Admin (Auth verification)
-* MongoDB (Mongoose)
-
-### AI Layer (Planned)
-
-* Python (FastAPI)
-* LLM integration
-* Data generation pipelines
-
----
-
-## 📁 Project Structure
+## Key files
 
 ```
 src/
-│
 ├── app/
-│   ├── api/
-│   │   ├── auth/
-│   │   ├── user/
-│   │   └── dataset/
-│   │
-│   ├── dashboard/
-│   ├── login/
-│   └── settings/
-│
+│   ├── page.tsx            landing page
+│   ├── login/page.tsx      auth
+│   ├── dashboard/page.tsx  chat cleaning UI
+│   ├── layout.tsx          fonts + root layout
+│   ├── globals.css         design tokens + animations
+│   └── api/
+│       ├── clean/route.ts  JWT verify → proxy to Python /clean
+│       └── auth/*          Firebase auth + user routes
+├── component/
+│   ├── layout/Navbar.tsx   landing navbar
+│   └── ui/Reveal.tsx       scroll-reveal wrapper
 ├── lib/
-│   ├── firebase.ts
-│   ├── firebaseAdmin.ts
-│   ├── db.ts
-│
-├── models/
-│   ├── User.ts
-│   └── Dataset.ts
+│   ├── auth.ts             Firebase login/logout + token helpers
+│   ├── useAuthUser.ts      client hook: current user + credits
+│   ├── firebase.ts         Firebase client SDK
+│   ├── firebaseAdmin.ts    firebase-admin (server)
+│   └── DB.ts               MongoDB (mongoose) connection
+└── models/User.ts          User schema (uid, email, credits, plan)
 ```
 
----
+## Setup
 
-## 🔐 Authentication Flow
-
-```
-User → Firebase Login → Get Token
-        ↓
-Frontend → Backend (/api/auth)
-        ↓
-Firebase Admin verifies token
-        ↓
-User created / logged in
-```
-
----
-
-## 📊 Dataset Flow
-
-```
-User Prompt
-   ↓
-Preview API (no credits)
-   ↓
-Generate API (credits deducted)
-   ↓
-Dataset stored
-   ↓
-Optional embeddings
-```
-
----
-
-## ⚙️ Environment Variables
-
-Create `.env.local`:
-
-```
-# Firebase (Frontend)
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-
-# Firebase Admin (Backend)
-FIREBASE_ADMIN_KEY=
-
-# MongoDB
-MONGO_URI=
-```
-
----
-
-## 🚀 Getting Started
-
-### 1. Clone Repo
-
-```
-git clone https://github.com/yourusername/prompt2data.git
-cd prompt2data
-```
-
-### 2. Install Dependencies
-
-```
+```bash
 npm install
+cp .env.local.example .env.local   # Firebase keys, MONGO_URI, PYTHON_API_URL
+npm run dev                        # http://localhost:3000
 ```
 
-### 3. Add Environment Variables
-
-Create `.env.local` and add required keys.
-
----
-
-### 4. Run Development Server
-
-```
-npm run dev
-```
-
----
-
-## 🔥 Future Roadmap
-
-* [ ] Dataset Preview API
-* [ ] Dataset Generation Engine
-* [ ] Credit deduction system
-* [ ] Python SDK
-* [ ] Vector DB integration
-* [ ] Payment system (Stripe)
-* [ ] Streaming datasets
-* [ ] Team collaboration
-
----
-
-## 💬 Philosophy
-
-Prompt2Data is built on the idea that:
-
-> "Data should be as easy to generate as prompts."
-
----
-
-## 👨‍💻 Author
-
-Built by **Priyanshu Joshi** 🚀
-AI + Startup + Engineering Enthusiast
-
----
-
-## ⭐ Support
-
-If you like this project:
-
-* ⭐ Star the repo
-* 🍴 Fork it
-* 💬 Share feedback
-
----
-
-## 📜 License
-
-MIT License
+`MONGO_URI` **must** match the Python backend's, and `PYTHON_API_URL` must point
+at the running FastAPI service (default `http://localhost:8000`).
