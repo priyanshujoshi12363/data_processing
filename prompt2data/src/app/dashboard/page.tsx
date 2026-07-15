@@ -23,6 +23,7 @@ import {
 } from "react-icons/fi";
 import { getFreshToken, logout } from "@/lib/auth";
 import { useAuthUser } from "@/lib/useAuthUser";
+import BackendWarmup from "@/component/ui/BackendWarmup";
 
 const ACCEPT = ".csv,.tsv,.json,.jsonl,.txt,.xlsx";
 const VALID = ["csv", "tsv", "json", "jsonl", "txt", "xlsx"];
@@ -286,6 +287,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-gray-50">
+      <BackendWarmup />
       {/* topbar */}
       <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white/90 px-3 backdrop-blur sm:h-16 sm:px-5">
         <Link href="/" className="flex items-center gap-2">

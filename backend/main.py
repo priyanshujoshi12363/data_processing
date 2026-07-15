@@ -25,3 +25,8 @@ app.include_router(clean_router)
 @app.get("/")
 def home():
     return {"status": "ok", "service": "prompt2data-clean"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

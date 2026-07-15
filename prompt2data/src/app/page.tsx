@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi";
 import Navbar from "@/component/layout/Navbar";
 import Reveal from "@/component/ui/Reveal";
+import BackendWarmup from "@/component/ui/BackendWarmup";
 
 const STEPS = [
   {
@@ -77,6 +78,7 @@ const tintClasses: Record<string, string> = {
 export default function Home() {
   return (
     <main className="relative overflow-hidden">
+      <BackendWarmup />
       <Navbar />
 
       {/* ---------- HERO ---------- */}
