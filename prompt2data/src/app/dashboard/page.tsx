@@ -46,6 +46,8 @@ interface Stats {
   cleanedRows: number;
   duplicatesRemoved: number;
   nullRowsRemoved: number;
+  cellsImputed?: number;
+  duplicatesFlagged?: number;
 }
 interface Preview {
   columns: string[];
@@ -526,10 +528,12 @@ function AssistantBubble({ msg, elapsed }: { msg: Message; elapsed: number }) {
             </div>
 
             {msg.stats && (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <Stat label="Rows in" value={msg.stats.totalRows} />
                 <Stat label="Rows out" value={msg.stats.cleanedRows} tone="grass" />
-                <Stat label="Duplicates" value={msg.stats.duplicatesRemoved} />
+                <Stat label="Duplicates removed" value={msg.stats.duplicatesRemoved} />
+                <Stat label="Values imputed" value={msg.stats.cellsImputed ?? 0} tone="grass" />
+                <Stat label="Duplicates flagged" value={msg.stats.duplicatesFlagged ?? 0} />
                 <Stat label="Empty rows" value={msg.stats.nullRowsRemoved} />
               </div>
             )}

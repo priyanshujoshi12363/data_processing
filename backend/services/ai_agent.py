@@ -1,29 +1,41 @@
+"""
+AI polish stage.
+
+The agent ONLY normalizes values per the user's instructions (typos, casing,
+formatting). It never adds/removes rows, never deduplicates, never fills in
+missing values, and never invents data — all of that is handled deterministically
+on the whole dataset afterwards (see cleaning_ops.py). Chunks are independent, so
+they run concurrently to stay fast on large files.
+"""
+
 import json
 import re
-from typing import Callable, Optional
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 import pandas as pd
 
 from core.config import settings
 from core.ollama_client import chat
 
-SYSTEM_PROMPT = """You are a precise data-cleaning engine.
+SYSTEM_PROMPT = """You are a precise data-normalizing engine.
 
-You receive one chunk of a dataset as a JSON array of row objects. Clean every \
-row and return the result.
+You receive one chunk of a dataset as a JSON array of row objects. Normalize the \
+values and return the result.
 
 Hard rules:
 1. Return ONLY a JSON array. No prose, no markdown, no code fences.
 2. Output the SAME number of objects as the input, in the SAME order.
 3. Keep the SAME keys on every object. Never add or drop keys.
-4. Never invent facts. If a value is unrecoverable, use null.
-5. Preserve the meaning of each value; only fix what the instructions ask for.
+4. Do NOT invent data. If a value is missing or clearly invalid, return null for it.
+5. Do NOT deduplicate and do NOT fill in missing values — that is handled elsewhere.
+6. Only normalize: fix spelling/casing, trim whitespace, standardize formats.
 """
 
 DEFAULT_INSTRUCTIONS = (
-    "Fix spelling, grammar, casing and punctuation. Trim extra whitespace. "
-    "Standardize obvious inconsistencies. Remove emojis and junk characters. "
-    "Leave already-correct values untouched."
+    "Fix spelling and casing, trim whitespace, and standardize obvious formatting "
+    "inconsistencies. Leave already-correct values untouched. Return null for "
+    "missing or clearly invalid values (do not guess replacements)."
 )
 
 
@@ -45,10 +57,10 @@ class AICleaningAgent:
     def __init__(
         self,
         chunk_size: int = settings.DEFAULT_CHUNK_SIZE,
-        progress_callback: Optional[Callable[[int, str], None]] = None,
+        concurrency: int = settings.OLLAMA_CONCURRENCY,
     ):
         self.chunk_size = max(1, chunk_size)
-        self.progress_callback = progress_callback
+        self.concurrency = max(1, concurrency)
 
     def clean_dataframe(self, df: pd.DataFrame, user_prompt: str = "") -> pd.DataFrame:
         if df.empty:
@@ -60,23 +72,26 @@ class AICleaningAgent:
             instructions += f"\n\nUser instructions (highest priority):\n{user_prompt.strip()}"
 
         records = df.where(pd.notna(df), None).to_dict(orient="records")
-        total = len(records)
-        total_chunks = (total + self.chunk_size - 1) // self.chunk_size
+        chunks = [records[i : i + self.chunk_size] for i in range(0, len(records), self.chunk_size)]
+        results: list[Optional[list[dict]]] = [None] * len(chunks)
 
-        cleaned_rows: list[dict] = []
-        for index, start in enumerate(range(0, total, self.chunk_size), start=1):
-            chunk = records[start : start + self.chunk_size]
-            cleaned_rows.extend(self._clean_chunk(chunk, columns, instructions))
-            self._report(index, total_chunks)
+        with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
+            futures = {
+                executor.submit(self._clean_chunk, chunk, columns, instructions): idx
+                for idx, chunk in enumerate(chunks)
+            }
+            for future in futures:
+                idx = futures[future]
+                results[idx] = future.result()
 
-        cleaned_df = pd.DataFrame(cleaned_rows)
-        return cleaned_df.reindex(columns=columns)
+        cleaned_rows = [row for chunk in results if chunk for row in chunk]
+        return pd.DataFrame(cleaned_rows).reindex(columns=columns)
 
     def _clean_chunk(self, chunk: list[dict], columns: list[str], instructions: str) -> list[dict]:
         user_message = (
             f"{instructions}\n\n"
             f"Columns (keep exactly these keys): {columns}\n"
-            f"Rows to clean ({len(chunk)} objects):\n"
+            f"Rows to normalize ({len(chunk)} objects):\n"
             f"{json.dumps(chunk, ensure_ascii=False)}"
         )
 
@@ -93,9 +108,3 @@ class AICleaningAgent:
             else:
                 normalized.append(original)
         return normalized
-
-    def _report(self, done_chunks: int, total_chunks: int) -> None:
-        if not self.progress_callback:
-            return
-        progress = 20 + int((done_chunks / max(1, total_chunks)) * 65)
-        self.progress_callback(progress, f"AI cleaning chunk {done_chunks}/{total_chunks}")
